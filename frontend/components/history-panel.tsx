@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { History, Trash2, Lock, Unlock } from "lucide-react"
+import { History, Trash2, Lock, Unlock, Hash } from "lucide-react"
 import { getHistory, clearHistory, deleteHistoryEntry, formatTimestamp, truncateText } from "@/lib/history"
 import type { HistoryEntry } from "@/lib/history"
 import {
@@ -61,6 +61,39 @@ export function HistoryPanel({ onRestore }: HistoryPanelProps) {
     onRestore(entry)
   }
 
+  const getActionDetails = (action: HistoryEntry["action"]) => {
+    switch (action) {
+      case "encrypt":
+        return {
+          Icon: Lock,
+          label: "Encrypted",
+          badgeVariant: "default" as const,
+          iconColor: "text-primary",
+        }
+      case "decrypt":
+        return {
+          Icon: Unlock,
+          label: "Decrypted",
+          badgeVariant: "secondary" as const,
+          iconColor: "text-accent",
+        }
+      case "hash":
+        return {
+          Icon: Hash,
+          label: "Hashed",
+          badgeVariant: "outline" as const,
+          iconColor: "text-green-500",
+        }
+      default:
+        return {
+          Icon: History,
+          label: "Unknown",
+          badgeVariant: "destructive" as const,
+          iconColor: "text-muted-foreground",
+        }
+    }
+  }
+
   return (
     <Card className="w-full border-border/50 bg-card/50 backdrop-blur-sm shadow-xl">
       <CardHeader>
@@ -92,7 +125,7 @@ export function HistoryPanel({ onRestore }: HistoryPanelProps) {
             </AlertDialog>
           )}
         </div>
-        <CardDescription>Recent encryption and decryption operations</CardDescription>
+        <CardDescription>Recent encryption, decryption, and hashing operations</CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -102,55 +135,56 @@ export function HistoryPanel({ onRestore }: HistoryPanelProps) {
               <History className="h-8 w-8 text-muted-foreground" />
             </div>
             <p className="text-sm font-medium text-muted-foreground mb-1">No history yet</p>
-            <p className="text-xs text-muted-foreground/70">
-              Your encryption and decryption operations will appear here
-            </p>
+            <p className="text-xs text-muted-foreground/70">Your operations will appear here</p>
           </div>
         ) : (
           <ScrollArea className="h-[400px] pr-4">
             <div className="space-y-3">
-              {history.map((entry) => (
-                <button
-                  key={entry.id}
-                  onClick={() => handleRestore(entry)}
-                  className="w-full text-left p-4 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 hover:border-border transition-all duration-200 group"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      {entry.action === "encrypt" ? (
-                        <Lock className="h-4 w-4 text-primary shrink-0" />
-                      ) : (
-                        <Unlock className="h-4 w-4 text-accent shrink-0" />
-                      )}
-                      <Badge variant={entry.action === "encrypt" ? "default" : "secondary"} className="text-xs">
-                        {entry.action === "encrypt" ? "Encrypted" : "Decrypted"}
-                      </Badge>
+              {history.map((entry) => {
+                const { Icon, label, badgeVariant, iconColor } = getActionDetails(entry.action)
+                return (
+                  <button
+                    key={entry.id}
+                    onClick={() => handleRestore(entry)}
+                    className="w-full text-left p-4 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 hover:border-border transition-all duration-200 group"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <Icon className={`h-4 w-4 ${iconColor} shrink-0`} />
+                        <Badge variant={badgeVariant} className="text-xs">
+                          {label}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp)}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => handleDelete(entry.id, e)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{formatTimestamp(entry.timestamp)}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleDelete(entry.id, e)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Input:</p>
-                      <p className="text-sm font-mono text-foreground/90 break-all">{truncateText(entry.input, 80)}</p>
+                    <div className="space-y-1.5">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Input:</p>
+                        <p className="text-sm font-mono text-foreground/90 break-all">
+                          {truncateText(entry.input, 80)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Output:</p>
+                        <p className="text-sm font-mono text-foreground/70 break-all">
+                          {truncateText(entry.output, 80)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Output:</p>
-                      <p className="text-sm font-mono text-foreground/70 break-all">{truncateText(entry.output, 80)}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                )
+              })}
             </div>
           </ScrollArea>
         )}

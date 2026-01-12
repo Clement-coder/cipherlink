@@ -1,6 +1,6 @@
 // History management utilities for localStorage persistence
 
-export type HistoryAction = "encrypt" | "decrypt"
+export type HistoryAction = "encrypt" | "decrypt" | "hash"
 
 export interface HistoryEntry {
   id: string
